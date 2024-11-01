@@ -38,10 +38,6 @@ fn main(){
 	// Defaulting the params and I didn't need to write None when calling the
 	// Function it would have be great to deafult
 	let tensor6 = Tensor::<B>::new(&[[1.0, 2.0]], None); //Default device taken
-
-	//Here the data is f64 and when passed in DType we want to convert
-	// The data type to provided one as it will be helpful at times
-	let tensor7 = Tensor::<B>::new(&[1.0, 2.0], DType::F32, &device); //DType param is Option<DType>
 	
 }
 ```
@@ -49,3 +45,26 @@ fn main(){
 ##### Open Questions
 - Should we add a layer of StridedIndex or Indexing functionality in the Tensor itself or leave it to the Backend? Or Should we create another Crate for extending the Indexing which Backend can utilise?
 - How do we go with Compiling or Dynamic Graph Execution?
+
+
+**Why I am not going with generic CpuStorage with Element trait bound?**
+```rust
+pub struct CpuSt<E: Element> {
+    data: Vec<E>,
+}
+
+impl<E: Element> Storage for CpuSt<E>{}
+
+
+impl<E: DefaultElement> Backend for CpuBackend {
+    type Storage = CpuSt<E>;
+    type Device = CpuDevice;
+    type Error = CpuBackendError;
+}
+```
+
+Here I don't want to add a Default Element implementation rather the Element should be given as DType, as Backend is same for any Tensor creation and  DType is applicable a Tensor Instance only. I tried multiple ways to avoid this, for example, looked for a possible way to infer Element from DType as Dtype is passed, but it didn't work. If we can achieve the same functionality in the Future I would love to swicth to that implementation.
+
+
+**How to handle certain ops have implementation to certain data types?**
+

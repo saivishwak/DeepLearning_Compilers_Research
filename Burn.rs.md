@@ -20,7 +20,6 @@ let tensor_3 = Tensor::<Backend, 1>::from_floats([1.0, 2.0, 3.0], &device);
 Burn is using `TensorData` struct to convert data types, but it internally uses bytemuck which has usafe rust code. (We need to avoid that!)
 https://github.com/tracel-ai/burn/blob/main/crates/burn-tensor/src/tensor/data.rs#L94C9-L94C17
 
-
 #### How Tensor ops like zeros, ones, reshape and Basic ops work in Burn?
 
 ```rust
@@ -261,7 +260,7 @@ where
 
 ```
 
-Here the primitive is the TensorKind, So if we initialise a Float Tensor then the primitive here is FloatTensorPrimitive, if we initialise IntTensor then its IntTensorPrimitive.
+Here the primitive is the `TensorKind`, So if we initialize a Float Tensor then the primitive here is `FloatTensorPrimitive`, if we initialise IntTensor then its `IntTensorPrimitive`.
 
 Sneak peek into Backend trait (Below is only a portion of the code)
  ```rust
@@ -293,12 +292,12 @@ pub trait Backend:
 
 
 ###### Ops Implementation
-Tensor is Parameterised with TensorKind Parameter, and each TensorKind parameter (Float, Int, Bool) has their Ops implementation defined with Traits like, BasicOps, Numeric etc.
+Tensor is parameterized with `TensorKind` Parameter, and each `TensorKind` parameter (Float, Int, Bool) has their Ops implementation defined with Traits like, `BasicOps`, `Numeric` etc.
 
-One awesome point to not is, Tensor/base.rs file does not have the ones and zeros implementations, These are coming from the Numeric implementations and the base.rs has only BasicOps defined.
+One awesome point to not is, Tensor/base.rs file does not have the ones and zeros implementations, These are coming from the Numeric implementations and the base.rs has only `BasicOps` defined.
 
-#### Things that can be better
-- I am right now against of using Three different kinds of Tensors, Rather prefer to stick to PyTorch implementation of passing DType explicitly
+### Things I believe can be better
+ I am right now against of using Three different kinds of Tensors, Rather prefer to stick to PyTorch implementation of passing `DType` explicitly
 
 ```python
 data = [[1, 2], [3, 4]]
@@ -310,9 +309,276 @@ x_np = torch.from_numpy(np_array)
 shape = (2, 3,)
 rand_tensor = torch.rand(shape)
 ones_tensor = torch.ones(shape)
-zeros_tensor = torch.zeros(shape)
+zeros_tensor = torch.zeros(shape)```
+
+
+```rust
+use burn::tensor::Tensor;
+
+fn main() {
+    type B = burn::backend::NdArray;
+    let device = Default::default();
+    let tensor1 = Tensor::<B, 1>::from_floats([1], &device);
+    // If you see here I am giving 1 as the value which is a i64 in rust but because I am calling from_floats the data is converted, This ambiguity is bad. The tensor should have clearly defined data type like PyTorch.
+    // Also do we really need to Dimension to be given as a type parameter or can we infer it directly from the data and shape given?
+    println!("{}", tensor1);
+}
+```
+
+```rust
+use burn::tensor::Tensor;
+
+fn main() {
+    type B<Elem> = burn::backend::NdArray<Elem>;
+    let device = Default::default();
+    let tensor1 = Tensor::<B<f32>, 1>::from_data(vec![1.0], &device);
+    //here vec is not supported, I feel for ease of reserach giving support for nested vec is good
+    println!("{}", tensor1);
+}
+```
+
+```rust
+use burn::tensor::Tensor;
+
+fn main() {
+    type B = burn::backend::NdArray;
+    let device = Default::default();
+    let tensor1 = Tensor::<B, 1>::from_data([1i32], &device);
+    println!("{}", tensor1);
+}
+```
+
+Output:
+```shell
+Tensor {
+  data:
+[1.0],
+  shape:  [1],
+  device:  Cpu,
+  backend:  "ndarray",
+  kind:  "Float",
+  dtype:  "f32",
+}
+```
+
+I have given i32 as the data but its internally converted back to f32 as it is the default Element type for Backends. It is better to avoid these ambiguities so that mistakes are avoided and we utilized the power of Rust Type Safety in a better way.
+
+```rust
+use burn::tensor::{Tensor, TensorData};
+
+fn main() {
+    type B = burn::backend::NdArray;
+    let device = Default::default();
+    let tensor1 = Tensor::<B, 1>::from_data(TensorData::from([1i32, 2, 3]), &device);
+    println!("{}", tensor1);
+}
+```
+
+Output:
+```shell
+Tensor {
+  data:
+[1.0, 2.0, 3.0],
+  shape:  [3],
+  device:  Cpu,
+  backend:  "ndarray",
+  kind:  "Float",
+  dtype:  "f32",
+}
+```
+
+Here also we have same auto type conversion ambiguity.
+
+```rust
+use burn::tensor::{Int, Tensor};
+
+fn main() {
+    type B = burn::backend::NdArray;
+    let device = Default::default();
+    let tensor1 = Tensor::<B, 1, Int>::from_data([1.0], &device);
+    println!("{}", tensor1);
+}
+```
+
+Output:
+```shell
+Tensor {
+  data:
+[1],
+  shape:  [1],
+  device:  Cpu,
+  backend:  "ndarray",
+  kind:  "Int",
+  dtype:  "i64",
+}
+```
+
+Similar ambiguity for IntTensor given a float element.
+
+
+##### Type Conversions
+```rust
+use burn::tensor::{Int, Tensor};
+
+fn main() {
+    type B = burn::backend::NdArray<f64>; //If we dont give f64, default is f32
+    let device = Default::default();
+    let tensor1 = Tensor::<B, 1, Int>::from_data([1], &device).float();
+    println!("{}", tensor1);
+}
+```
+
+```rust
+use burn::tensor::{Int, Tensor};
+
+fn main() {
+    type B = burn::backend::NdArray<f64>;
+    let device = Default::default();
+    let tensor1 = Tensor::<B, 1>::from_data([1], &device).int();
+    println!("{}", tensor1);
+}
+```
+
+Here as well the `int()` converts the tensor to `i64` datatype, there is no control to convert to other data types as far as I have used it.
+
+I believe like PyTorch giving ability to cast to different types with `to_dtype()` or `to()` methods which gives much flexibility and also provide default `.float()`, `.int()`, `.double()` to convert to basic types.
+#### Burn (Initial Analysis)
+- https://github.com/tracel-ai/burn/tree/7389ef20b009410464065841ff3b4821a7350a2c
+
+Main concepts
+- Backend
+- Tensor
+- Data
+- Ops
+- Graph
+
+##### Tensor
+```rust
+/// A tensor or a *n-dimensional* array.
+#[derive(Debug, Clone)]
+pub struct Tensor<B: Backend, const D: usize> {
+    pub(crate) value: B::TensorPrimitive<D>,
+}
+
+impl<const D: usize, B> Tensor<B, D>
+where
+    B: Backend,
+{
+    pub(crate) fn new(tensor: B::TensorPrimitive<D>) -> Self {
+        Self { value: tensor }
+    }
+
+    pub fn reshape<const D2: usize>(&self, shape: Shape<D2>) -> Tensor<B, D2> {
+        Tensor::new(self.value.reshape(shape))
+    }
+	
+	/// Returns the data of the current tensor without taking ownership.
+    pub fn to_data(&self) -> Data<B::Elem, D> {
+        self.value.to_data()
+    }
+
+    /// Create a tensor from the given data.
+    pub fn from_data(data: Data<B::Elem, D>) -> Self {
+        let tensor = B::from_data(data, B::Device::default());
+        Tensor::new(tensor)
+    }
+	
+	pub fn add(&self, other: &Self) -> Self {
+        Self::new(self.value.add(&other.value))
+    }
+	
+	pub fn zeros(shape: Shape<D>) -> Self {
+        let tensor = B::zeros(shape, B::Device::default());
+        Self::new(tensor)
+    }
+
+    /// Create a tensor of the given shape where each element is one.
+    pub fn ones(shape: Shape<D>) -> Self {
+        let tensor = B::ones(shape, B::Device::default());
+        Self::new(tensor)
+    }
+}
 ```
 
 
-###### GIT
+###### Backend
+```rust
+pub trait Backend: Clone + Sized + Default + Send + Sync + std::fmt::Debug + 'static {
+    type Device: Copy + Clone + Default + std::fmt::Debug + Send + Sync;
+    type Elem: Element;
+    type FullPrecisionElem: Element;
+    type FullPrecisionBackend: Backend<Elem = Self::FullPrecisionElem, Device = Self::Device>;
+    type IntegerBackend: Backend<Elem = i64, Device = Self::Device>;
+    type TensorPrimitive<const D: usize>: TensorOpsUtilities<Self::Elem, D>
+        + TensorOpsMatmul<Self::Elem, D>
+        + TensorOpsTranspose<Self::Elem, D>
+        + TensorOpsMul<Self::Elem, D>
+        + TensorOpsDiv<Self::Elem, D>
+        + TensorOpsNeg<Self::Elem, D>
+        + TensorOpsAdd<Self::Elem, D>
+        + TensorOpsSub<Self::Elem, D>
+        + TensorOpsDetach<Self::Elem, D>
+        + Zeros<Self::TensorPrimitive<D>>
+        + Ones<Self::TensorPrimitive<D>>
+        + TensorOpsReshape<Self, D>
+        + TensorOpsPrecision<Self, D>
+        + TensorOpsDevice<Self, D>
+        + TensorOpsIndex<Self::Elem, D>
+        + TensorOpsAggregation<Self, D>
+        + TensorOpsExp<Self::Elem, D>
+        + TensorOpsArg<Self, D>
+        + TensorOpsCat<Self::Elem, D>
+        + TensorOpsLog<Self::Elem, D>
+        + TensorOpsErf<Self::Elem, D>
+        + TensorOpsPow<Self::Elem, D>
+        + TensorOpsMask<Self, D>
+        + TensorOpsMapComparison<Self, D>
+        + ReLU<Self::Elem, D>
+        + Clone
+        + Send
+        + Sync
+        + Send
+        + Sync
+        + 'static
+        + std::fmt::Debug;
+
+    type BoolTensorPrimitive<const D: usize>: TensorOpsUtilities<bool, D>
+        + Clone
+        + Send
+        + Sync
+        + 'static
+        + std::fmt::Debug;
+
+    fn from_data<const D: usize>(
+        data: Data<Self::Elem, D>,
+        device: Self::Device,
+    ) -> Self::TensorPrimitive<D>;
+
+    fn from_data_bool<const D: usize>(
+        data: Data<bool, D>,
+        device: Self::Device,
+    ) -> Self::BoolTensorPrimitive<D>;
+
+    fn ad_enabled() -> bool;
+    fn name() -> String;
+    fn seed(seed: u64);
+
+    fn random<const D: usize>(
+        shape: Shape<D>,
+        distribution: Distribution<Self::Elem>,
+        device: Self::Device,
+    ) -> Self::TensorPrimitive<D>;
+
+    fn zeros<const D: usize>(shape: Shape<D>, device: Self::Device) -> Self::TensorPrimitive<D> {
+        Self::from_data(Data::zeros(shape), device)
+    }
+
+    fn ones<const D: usize>(shape: Shape<D>, device: Self::Device) -> Self::TensorPrimitive<D> {
+        Self::from_data(Data::ones(shape), device)
+    }
+}
+
+```
+### GIT
 - https://github.com/tracel-ai/burn/blob/3ba6c698755984d24d43ded235f6aab693908f4c/burn-tensor/src/tensor/data.rs
+- https://github.com/tracel-ai/burn/tree/7389ef20b009410464065841ff3b4821a7350a2c
