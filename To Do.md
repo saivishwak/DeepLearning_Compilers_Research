@@ -1,0 +1,5 @@
+- [x] Complete reading and writing out **The Deep Learning Compiler: A Comprehensive Survey** Paper
+- [ ] Read Glow Paper and Write down comprehensive review on its implementation of IR and Low level IR generation
+- [ ] Complete **DyCL: Dynamic Neural Network Compilation Via Program Rewriting and Graph Optimization** Paper
+- [ ] Complete **PyTorch 2: Faster Machine Learning Through Dynamic Python Bytecode Transformation and Graph Compilation** Paper
+- [ ] Complete **BranchyNet** Paper
