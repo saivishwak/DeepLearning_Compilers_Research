@@ -1,5 +1,10 @@
 - [x] Complete reading and writing out **The Deep Learning Compiler: A Comprehensive Survey** Paper
+- [ ] Understand and Document JAX
 - [ ] Read Glow Paper and Write down comprehensive review on its implementation of IR and Low level IR generation
 - [ ] Complete **DyCL: Dynamic Neural Network Compilation Via Program Rewriting and Graph Optimization** Paper
 - [ ] Complete **PyTorch 2: Faster Machine Learning Through Dynamic Python Bytecode Transformation and Graph Compilation** Paper
 - [ ] Complete **BranchyNet** Paper
+- [ ] Understand and Document IREE Runtime (Seems promising)
+- [ ] Understand and Document TVM
+- [ ] Research on Static vs Dynamic Graph execution
+	- [ ] JAX uses tracing to produce static graph, So how can we compile Dynamic graphs like Burn claims to do so.
