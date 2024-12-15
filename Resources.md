@@ -23,7 +23,8 @@
 - [Rust LLVM-Sys Example](https://github.com/jauhien/iron-kaleidoscope)
 - [Paddle - Distributed Deep Learning Framework](https://github.com/PaddlePaddle/Paddle)
 - [Halide Language](https://github.com/halide/Halide)
-- [MLIR Toy Language](https://github.com/llvm/llvm-project/tree/main/mlir/examples/toy)
+- [MLIR Toy Language](https://github.com/llvm/llvm-project/tree/main/mlir/examples/toy
+- [PyTensor](https://github.com/pymc-devs/pytensor)
 
 #### Articles
 - [Cubecl explanation](https://gist.github.com/nihalpasham/570d4fe01b403985e1eaf620b6613774)
@@ -31,3 +32,7 @@
 - [ChipMunk Custom RiscV Chip Design](https://chipmunklogic.com/digital-logic-design/designing-pequeno-risc-v-cpu-from-scratch-part-1-getting-hold-of-the-isa/)
 - [ChipYard - RiscV Framework](https://chipyard.readthedocs.io/en/stable/)
 - [MLIR Euro 2024 Meeting](https://llvm.org/devmtg/2024-04/)
+- [Programming Paradigm](https://en.wikipedia.org/wiki/Programming_paradigm)
+- https://www.tensorflow.org/guide/intro_to_graphs
+- https://pytorch.org/blog/understanding-lazytensor-system-performance-with-pytorch-xla-on-cloud-tpu/
+- 
